@@ -1,0 +1,7 @@
+# -*- coding: utf-8 -*-
+from __future__ import division, unicode_literals, print_function
+
+import redis
+
+cache = redis.Redis()
+  
