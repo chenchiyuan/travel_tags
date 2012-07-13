@@ -12,24 +12,30 @@ def to_unicode(word):
     return word
   try:
     return unicode(word, 'utf-8')
-  except:
-    return word
+  except Exception as err:
+    print("Err is %s" %err)
+    return word.encode('utf-8').decode('utf-8')
 
 def to_str(word):
-  if isinstance(word, basestring):
-    return word
-  elif isinstance(word, unicode):
+  if isinstance(word, unicode):
     return word.encode('utf-8')
-  return str(word)
+  elif isinstance(word, str):
+    return word
+  else:
+    return str(word)
 
 class WordSeg:
   @classmethod
   def load_from_dict(cls, path=path):
+    '''
+      load utf8 encoding key to redis, and seg it to str, decode to utf8 to find it
+    '''
+
     file = open(path, 'r')
     lines = file.readlines()
     for line in lines:
       line = to_unicode(line[:-1])
-      key = '%s%s' %(TAG_CACHE_KEY, line.encode('utf-8'))
+      key = '%s%s' %(TAG_CACHE_KEY, line)
       if not cache.exists(key):
         cache.incr(key, amount=1)
     print("Done loads")
@@ -63,10 +69,10 @@ class WordSeg:
   @classmethod
   def parse(cls, words):
     import random
-    tmp_key = 'TMP:KEY:%s' %str(int(float(random.random()*100000)))
-
     if isinstance(words, list):
       return []
+
+    tmp_key = 'TMP:KEY:%s' %str(int(float(random.random()*100000)))
     results = []
     words = to_str(words)
     for text in seg_txt(words):
@@ -89,8 +95,8 @@ class WordSeg:
 
 if __name__ == '__main__':
   file = open('data/content', 'r')
-  content = ''.join([to_unicode(line) for line in file.readlines()])
-  keywords = WordSeg.parse(content.encode('utf-8'))
+  content = ''.join([unicode(line, 'utf-8') for line in file.readlines()])
+  keywords = WordSeg.parse(content)
   for k in keywords:
     print(k)
   file.close()
