@@ -1,8 +1,23 @@
 # -*- coding: utf-8 -*-
 from __future__ import division, unicode_literals, print_function
-
-from mmseg import seg_txt
 from core.cache import cache
+from mmseg import _mmseg as seg
+from os.path import join, dirname
+
+####  load dict for mmseg ####
+
+seg.dict_load_chars(join(dirname(__file__), 'data', 'chars.dic'))
+seg.dict_load_words(join(dirname(__file__), 'data', 'words.dic'))
+
+def seg_txt(text):
+    if type(text) is str:
+        algor = seg.Algorithm(text)
+        for tok in algor:
+            yield tok.text
+    else:
+        yield ""
+
+#########################
 
 TAG_CACHE_KEY = 'TAG:'
 path = 'data/tags'
