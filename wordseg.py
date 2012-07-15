@@ -3,6 +3,8 @@ from __future__ import division, unicode_literals, print_function
 from core.cache import cache
 from mmseg import _mmseg as seg
 from os.path import join, dirname
+from models import Tag
+from core.utils import *
 
 ####  load dict for mmseg ####
 
@@ -17,42 +19,38 @@ def seg_txt(text):
     else:
         yield ""
 
+def tags_to_dict():
+  file = open('data/tags', 'r')
+  lines = file.readlines()
+  file.close()
+
+  output = open('data/words.dic', 'a')
+  for line in lines:
+    line = line[-1]
+    output.write('%d %s\n' %(len(line)/3, line))
+  output.close()
+
+  print('Tags to dict Done!')
+
 #########################
 
 TAG_CACHE_KEY = 'TAG:'
 path = 'data/tags'
-
-def to_unicode(word):
-  if isinstance(word, (unicode, type(None))):
-    return word
-  try:
-    return unicode(word, 'utf-8')
-  except Exception as err:
-    print("Err is %s" %err)
-    return word.encode('utf-8').decode('utf-8')
-
-def to_str(word):
-  if isinstance(word, unicode):
-    return word.encode('utf-8')
-  elif isinstance(word, str):
-    return word
-  else:
-    return str(word)
-
 class WordSeg:
+  '''
+  words is utf-8 coding, load it to cache, when parse it, convert it to str .Atfer seg, decode to utf-8.
+  '''
   @classmethod
   def load_from_dict(cls, path=path):
-    '''
-      load utf8 encoding key to redis, and seg it to str, decode to utf8 to find it
-    '''
-
     file = open(path, 'r')
+
     lines = file.readlines()
     for line in lines:
       line = to_unicode(line[:-1])
       key = '%s%s' %(TAG_CACHE_KEY, line)
       if not cache.exists(key):
         cache.incr(key, amount=1)
+
     print("Done loads")
     file.close()
 
@@ -73,7 +71,7 @@ class WordSeg:
     for key in keys:
       cache.delete(key)
 
-    print("Cache clear Done")
+    print("C ache clear Done")
 
   @classmethod
   def is_keyword(cls, word):
@@ -111,7 +109,22 @@ class WordSeg:
 if __name__ == '__main__':
   file = open('data/content', 'r')
   content = ''.join([unicode(line, 'utf-8') for line in file.readlines()])
+  file.close()
+
   keywords = WordSeg.parse(content)
+
+  originals = [keyword.split('__')[0] for keyword in keywords]
+  friends = []
+  for o in originals:
+    tag = Tag.get_or_create(o)
+    friends.extend(tag.friends)
+
+  friends = sum_list(friends)
+
+  print("Original tags")
   for k in keywords:
     print(k)
-  file.close()
+
+  print("Friends tags")
+  for f in friends:
+    print(to_unicode(f[0]) + u'__' + unicode(f[1]))
